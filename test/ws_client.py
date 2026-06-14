@@ -20,9 +20,9 @@ class Ws_client:
     async def main(self):
         #Here i need to connect to the server 
         #using websockets
-        uri = "ws://localhost:1234" # 1234 is the port number where server is listeninging
+        uri = "ws://localhost/login:8000" # 1234 is the port number where server is listeninging
         print(f"Connecting to uri: {uri}")
-        async with websockets.connect(uri) as websocket:
+        async with websockets.connect(uri) as websocket: #use context manager
             print("Connected successfully!")
             await asyncio.gather(self.send_msg(websocket),self.recv_msg(websocket))
         pass
