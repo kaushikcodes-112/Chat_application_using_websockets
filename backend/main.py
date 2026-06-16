@@ -1,6 +1,7 @@
 from fastapi import FastAPI,WebSocket,HTTPException, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import asyncio
 REGISTERED_USERS=set() #resgistered users is of type dict and dict is of type int mapping to str
 id_counter=500                     #type is already defined to avoid type mismatch
 
@@ -16,20 +17,24 @@ app.add_middleware(
 class ChatManager:
     def __init__(self):
         self.active_sockets: dict[str,WebSocket]={}
+        self.lock = asyncio.Lock()
         pass
     async def connect(self,username:str,websocket:WebSocket):
         await websocket.accept()
-        self.active_sockets[username] = websocket
+        async with self.lock:
+            self.active_sockets[username] = websocket
         await self.broadcast(sender_username=username,message=f"New user: {username} joined the chat!")
     async def disconnect(self,username:str):
-        if username in self.active_sockets:
-            del self.active_sockets[username]
-        REGISTERED_USERS.remove(username)
+        async with self.lock:
+            if username in self.active_sockets:
+                del self.active_sockets[username]
+            REGISTERED_USERS.remove(username)
         await self.broadcast(sender_username=username,message=f"{username} left the chat")
         pass
     async def broadcast(self,sender_username,message):
-        
-        for username,ws in self.active_sockets.items():
+        async with self.lock:
+            targets = list(self.active_sockets.items())
+        for username,ws in targets:
             if username == sender_username:
                 continue
             try:
@@ -76,7 +81,7 @@ async def websocket_endpoint(websocket: WebSocket,username:str):
             await manager.broadcast(sender_username=username,message=raw_text)
     except WebSocketDisconnect:
         await manager.disconnect(username=username)
-        id_counter+=1
+        #id_counter+=1
     finally:
         print(id_counter)
         
