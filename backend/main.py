@@ -13,6 +13,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+# we need rooms. 
+# 1. we need active clients as a dict whose key= room_id and value= websockets of different users
 
 class ChatManager:
     def __init__(self):
