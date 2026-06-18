@@ -1,3 +1,4 @@
 #ignore the rough copy folder
 Rough_copy(donot_push_to_github)/
 backend/main.py
+backend/ws_server.py
