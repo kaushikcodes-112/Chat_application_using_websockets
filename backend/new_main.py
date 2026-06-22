@@ -27,27 +27,37 @@ class ChatManager:
         
     async def connect(self,websocket:WebSocket,username:str, room_id:str):
         await websocket.accept()
-        async with self.lock():
+        async with self.lock:
             if room_id not in self.active_clients.keys():
                 self.active_clients[room_id]={}
             self.active_clients[room_id][username]=websocket
-        await self.broadcast(username,room_id,f"New user: {username} joined the chat!")
+        await self.broadcast(sender_username="System",room_id=room_id,msg_type="user_joined",message=f"New user: {username} joined the chat!")
         
     async def disconnect(self,username:str,room_id:str):
-        async with self.lock():
+        async with self.lock:
             if username in self.active_clients[room_id]:
                 del self.active_clients[room_id][username]
                 if not self.active_clients[room_id]:
                     del self.active_clients[room_id]
-                
-    async def broadcast(self,room_id:str,sender_username:str,message:str):
+        
+        await self.broadcast(room_id=room_id,sender_username="System",msg_type="user_left", message=f"{username} left the char")
+    async def broadcast(self,room_id:str,sender_username:str,msg_type:str,message:str):
         async with self.lock:
+            if room_id not in self.active_clients:
+                return;
             targets = list(self.active_clients[room_id].items())
+        message_packet = {
+            "type": msg_type,
+            "sender": sender_username,
+            "payload": message
+        }
         for username,ws in targets:
             if username==sender_username:
                 continue
-            await ws.send_text(f"{sender_username} : {message}")
-
+            try:
+                await ws.send_json(message_packet)
+            except Exception:
+                pass
 class RegistrationRequestData(BaseModel):
     username:str
     room_id:str
@@ -76,13 +86,11 @@ async def connect_to_rooms(room_id:str,username:str,websocket:WebSocket):
         while True:
             raw_data =await websocket.receive_text()
             data = json.loads(raw_data)
-            payload=data.get("msg")
+            
             if data.get("type")=="typing":
-                payload=json.dumps({"type":"typing","payload":f" is typing"})
-                await manager.broadcast(room_id=room_id,sender_username=username,message=payload)
+                await manager.broadcast(room_id=room_id,sender_username=username,msg_type="typing",message="is typing...")
             elif data.get("type")=="chat":
-                payload=json.dumps({"type":"chat","payload":f"{data.get("msg")}"})
-                await manager.broadcast(room_id=room_id,sender_username=username,message=payload)
+                await manager.broadcast(room_id=room_id,sender_username=username,msg_type="chat",message=data.get("payload",""))
     except WebSocketDisconnect:
         await manager.disconnect(username=username,room_id=room_id)     
     

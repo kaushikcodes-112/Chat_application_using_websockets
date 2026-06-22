@@ -6,9 +6,8 @@ D:.
 |   index.html
 |   
 +---backend
-|   |   main.py
-|   |   main2.py
-|   |   ws_server.py
+|   |   check_secrets.py
+|   |   new_main.py
 |   |   
 |   +---routes
 |   \---__pycache__
@@ -6852,8 +6851,16 @@ D:.
 |           |   App.jsx
 |           |   index.css
 |           |   main.jsx
-|           |   
+|	     \---components
+|           |   |	AccessPortal.jsx
+|	     |   |    ChatArea.jsx
+|	     |   |    LoadingScreen.jsx
+|	     |   |    Sidebar.jsx
 |           \---assets
+|	     |
+|           \---hooks
+|	     |   |
+|	     |   |useChatWebSocket.js
 +---root_venv_folder
 |   |   .gitignore
 |   |   pyvenv.cfg
